@@ -49,25 +49,23 @@ class DehazeNetAttention(nn.Module):
         self.attention = SpatialAttentionLayer()
 
     def forward(self, x, boxes):
-        source = []
-        source.append(x)
-
-        x1 = self.relu(self.e_conv1(x))
-        x2 = self.relu(self.e_conv2(x1))
-
-        concat1 = torch.cat((x1, x2), 1)
-        x3 = self.relu(self.e_conv3(concat1))
-
-        concat2 = torch.cat((x2, x3), 1)
-        x4 = self.relu(self.e_conv4(concat2))
-
-        concat3 = torch.cat((x1, x2, x3, x4), 1)
-        x5 = self.relu(self.e_conv5(concat3))
-
         # Apply attention based on bounding boxes
         attention_map = self.attention(x, boxes)
-        focused_feature = x5 * attention_map  # Modulate features by attention
-
-        clean_image = self.relu((focused_feature * x) - focused_feature + 1)
-
+        x = x * attention_map  # Modulate the input image directly
+    
+        x1 = self.relu(self.e_conv1(x))
+        x2 = self.relu(self.e_conv2(x1))
+    
+        concat1 = torch.cat((x1, x2), 1)
+        x3 = self.relu(self.e_conv3(concat1))
+    
+        concat2 = torch.cat((x2, x3), 1)
+        x4 = self.relu(self.e_conv4(concat2))
+    
+        concat3 = torch.cat((x1, x2, x3, x4), 1)
+        x5 = self.relu(self.e_conv5(concat3))
+    
+        # Final clean image synthesis
+        clean_image = self.relu((x5 * x) - x5 + 1)
+    
         return clean_image
